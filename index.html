@@ -6,15 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <h1 id="num"></h1>
+    <h1 id="num">0</h1>
+    <h1 id="num2">0</h1>
 <script src="util.js"></script>
 <script src=""></script>
 <script>
     const fs = require('fs')
     
     var langs = ["fra", "spa", "por", "eng", "pol", "ita", "ces", "lat", "tur"]
+    //separateLanguages()
+    step3()
     
     function separateLanguages () {
+        var active = {}
         var streams = {}
         var count = 0
     
@@ -34,18 +38,120 @@
     
             if (langs.includes(lang)) {
                 streams[lang].write(num + '\t' + sentence + '\r\n')
+                active[line[0]] = line[1]
             }
             count += 1
-            if (count % 1000 === 0) {
-                document.getElementById('num').textContent = util.percent(count, 7000000)
+            if (count % 60000 === 0) {
+                id('num').textContent = util.percent(count, 7000000)
             }
         })
     
         sentencesReader.on('close', () => {
-            fs.writeFile('tmp/active.json', JSON.stringify(active), (e) => { })
+            fs.writeFile('active.json', JSON.stringify(active), (e) => { })
+            setTimeout(function () {
+                step2()
+            }, 1000)
         })
     }
 
+    function step2 () {
+        let prevIndex = '1'
+        let prevTime = 0
+        let counterLine = 0
+        var currentIndex = 1
+        var writeObj = {}
+        var linesGroup = []
+        var ifLast = false
+        var active = util.readFile('active.json')
+        let output = fs.createWriteStream('links.json')
+
+        output.write('{')
+
+        var pairReader = require('readline').createInterface({
+            input: require('fs').createReadStream('csv/links.csv')
+        });
+
+        pairReader.on('line', (line) => {
+            if (counterLine % 170000 === 0) {
+                id('num2').textContent = util.percent(counterLine, 16000000)
+            }
+            counterLine += 1
+            line = line.split("\t")
+            let index1 = +line[0]
+            let index2 = +line[1]
+            if (active[index1]) {
+
+                if (currentIndex == index1) {
+                    linesGroup.push([index1, index2])
+                }
+                if (index1 > currentIndex) {
+                    processGroup()
+                    linesGroup = []
+                    linesGroup.push([index1, index2])
+                    currentIndex = index1
+                }
+            }
+
+            function processGroup() {
+                var result = {}
+                for (let line of linesGroup) {
+                    var index1 = [line[0]]
+                    var index2 = line[1]
+                    if (typeof active[index2] !== 'undefined') {
+                        result[active[index2] /* e.g. 'eng' */] = index2
+                    }
+                }
+                result = JSON.stringify(result)
+                output.write('"' + index1 + '":')
+                output.write(result + ',\n')
+            }
+        })
+
+        pairReader.on('close', () => {
+            output.write('"dummy": {}}')
+            setTimeout(function () {
+                //step3()
+            })
+        })
+    }
+    
+    function step3 () {
+        var links = util.readFile('links.json')
+
+        separateSentences(langs)
+
+        function separateSentences(langs) {
+
+            lang = langs.pop()
+            var sentencesReader = require('readline').createInterface({
+                input: require('fs').createReadStream('csv/sentences.csv')
+            });
+            var output = fs.createWriteStream(`garbage-${lang}.json`)
+            output.write('{')
+
+            sentencesReader.on('line', (line) => {
+                line = line.split("\t")
+                var record = {
+                    index: line[0],
+                    lang: line[1],
+                    sentence: line[2]
+                }
+                if (record.lang === lang) {
+                    output.write(`"${record.index}":${JSON.stringify({
+                        s: record.sentence,    // sentence
+                        o: links[record.index] // others
+                    })},\n`)
+                }
+                //console.log(lang + ' ' + record.index)
+            })
+            sentencesReader.on('close', () => {
+                output.write('"dummy": {}}')
+                if (langs.length > 0) {
+                    separateSentences(langs)
+                }
+            })
+        }
+    }
 </script>
 </body>
 </html>
