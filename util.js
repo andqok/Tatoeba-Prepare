@@ -6,6 +6,28 @@ const util = {
     },
     percent: (arg1, arg2) => {
         return Math.floor((arg1 / arg2) * 100)
+    },
+    removePunctuation: (word) => {
+        word = word.replace(/[,.?!:;()¿¡"«»\\%]/g, "")
+        word = word.replace(/\`/g, "\'")
+        return word
+    },
+    time: (time, startTime) => {
+        if (!time) {
+            time = new Date()
+        }
+        let hours = addZero(time.getHours())
+        let minutes = addZero(time.getMinutes())
+        let seconds = addZero(time.getSeconds())
+        return `${hours}:${minutes}:${seconds}`
+
+        function addZero(a) {
+            if (a <= 9) {
+                return '0' + a
+            } else {
+                return a
+            }
+        }
     }
 }
 
