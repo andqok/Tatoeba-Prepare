@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Document</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1 id="num"></h1>
+<script src="util.js"></script>
+<script src=""></script>
+<script>
+    const fs = require('fs')
+    
+    var langs = ["fra", "spa", "por", "eng", "pol", "ita", "ces", "lat", "tur"]
+    
+    function separateLanguages () {
+        var streams = {}
+        var count = 0
+    
+        var sentencesReader = require('readline').createInterface({
+            input: require('fs').createReadStream('csv/sentences.csv')
+        });
+    
+        langs.forEach(lang => {
+            streams[lang] = fs.createWriteStream(`${lang}.csv`)
+        })
+    
+        sentencesReader.on('line', (line) => {
+            line = line.split("\t")
+            let num = line[0]
+            let lang = line[1]
+            let sentence = line[2]
+    
+            if (langs.includes(lang)) {
+                streams[lang].write(num + '\t' + sentence + '\r\n')
+            }
+            count += 1
+            if (count % 1000 === 0) {
+                document.getElementById('num').textContent = util.percent(count, 7000000)
+            }
+        })
+    
+        sentencesReader.on('close', () => {
+            fs.writeFile('tmp/active.json', JSON.stringify(active), (e) => { })
+        })
+    }
+
+</script>
+</body>
+</html>

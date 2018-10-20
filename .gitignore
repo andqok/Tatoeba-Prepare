@@ -1,2 +1,12 @@
 csv/
 tmp/
+node_modules
+fra.csv
+spa.csv
+por.csv
+eng.csv
+pol.csv
+ita.csv
+ces.csv
+lat.csv
+tur.csv
