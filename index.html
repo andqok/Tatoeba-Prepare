@@ -8,16 +8,25 @@
 <body>
     <h1 id="num">0</h1>
     <h1 id="num2">0</h1>
+<script src="ui.js"></script>
 <script src="util.js"></script>
-<script src=""></script>
 <script>
     const fs = require('fs')
     
     var langs = ["fra", "spa", "por", "eng", "pol", "ita", "ces", "lat", "tur"]
     //separateLanguages()
-    step3()
+    //step4()
+    dom.render(ui, document.body)
+    langs.forEach(lang => {
+        dom.render( lng(lang), query('.langs'))
+    })
+    click('.step1-submit', e => {
+        let langs = queryArr('input[type=checkbox]:checked')
+                    .map(el => el.nextSibling.textContent)
+        separateLanguages(langs)
+    })
     
-    function separateLanguages () {
+    function separateLanguages (langs) {
         var active = {}
         var streams = {}
         var count = 0
@@ -152,6 +161,84 @@
             })
         }
     }
+    
+    function step4 () {
+        let ex = []
+        words('lat', 1)
+        function words(lang, num) {
+            //ex = []
+            var notFiltered = util.readFile(`tmp/garbage-${lang}.json`)
+            var tree = {}
+            var words = {}
+            var mostused = {}
+            let res = {}
+
+            for (let key in notFiltered) {
+
+                //if (notFiltered[key]['o'] && notFiltered[key]['o'][otherlang]) {
+                //    notFiltered[key]['o'] = notFiltered[key]['o'][otherlang]
+                    let sentence = notFiltered[key]['s']
+                    if (sentence) {
+                        processWords(words, tree, sentence.split(" "), key)
+                    }
+                //} else {
+                //    delete notFiltered[key]
+                //}
+            }
+
+            for (let key in words) {
+
+                let obj = words[key]
+                if (obj.length > 23) {
+                    if (mostused[obj.length]) {
+                        mostused[obj.length].push(key)
+                    } else {
+                        mostused[obj.length] = [key]
+                    }
+                }
+            }
+
+            //res['-tree']     = tree
+            res['-words'] = words
+            //notFiltered['-mostused'] = mostused
+            notFiltered['-lang'] = lang
+            //console.log(ex)
+            fs.writeFileSync(`res/—${lang}.js`,
+                `var lang${num} = ${JSON.stringify(res)}`)
+        }
+
+        function processWords(words, tree, wordsArr, key) {
+
+            for (let word of wordsArr) {
+                //if (typeof parseInt(word) !== 'number') {
+                word = word.toLowerCase()
+                word = util.removePunctuation(word)
+                //makeTree(tree, word)
+                makeWords(words, word, key)
+                //} else {
+                //   ex.push(word)
+                //}
+            }
+        }
+
+
+        function makeWords(words, word, key) {
+            if (words[word]) {
+                try {
+                    words[word].push(key)
+                } catch (e) {
+                    //console.log(word)
+                    //console.log(JSON.stringify(words) + ' error ' + e)
+                    ex.push(words[word])
+                    //exceptins += 1
+                }
+            } else {
+                words[word] = [key]
+            }
+        }
+    }
+
+
 </script>
 </body>
 </html>

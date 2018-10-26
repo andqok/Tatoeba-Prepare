@@ -1,36 +1,3 @@
-const util = {
-    readFile: (filename) => {
-        let   readFile = fs.readFileSync(filename, 'utf8')
-        let parsedFile = JSON.parse(readFile)
-        return parsedFile
-    },
-    percent: (arg1, arg2) => {
-        return Math.floor((arg1 / arg2) * 100)
-    },
-    removePunctuation: (word) => {
-        word = word.replace(/[,.?!:;()¿¡"«»\\%]/g, "")
-        word = word.replace(/\`/g, "\'")
-        return word
-    },
-    time: (time, startTime) => {
-        if (!time) {
-            time = new Date()
-        }
-        let hours = addZero(time.getHours())
-        let minutes = addZero(time.getMinutes())
-        let seconds = addZero(time.getSeconds())
-        return `${hours}:${minutes}:${seconds}`
-
-        function addZero(a) {
-            if (a <= 9) {
-                return '0' + a
-            } else {
-                return a
-            }
-        }
-    }
-}
-
 'use strict';
 
 function id(el) {
@@ -47,7 +14,11 @@ function queryArr(el) {
     )
 }
 
-function siblingOfClass(_class, el) {
+function click(q, func) {
+    query(q).addEventListener('click', func)
+}
+
+function siblingOfClass (_class, el) {
     return el.parentNode.getElementsByClassName(_class)[0]
 }
 
@@ -57,7 +28,7 @@ function siblingSearcher(el) {
     }
 }
 
-function clearPunctuation(word) {
+function clearPunctuation (word) {
     if (typeof word === 'string') {
         word = word.replace(/[\n,.?!:;()¿¡"«»\\%—–…]/g, "")
         // specific line - may not need this
@@ -102,7 +73,7 @@ is.empty.array = function (smth) {
     }
 }
 
-is.eventOfClass = function (className, event) {
+is.eventOfClass = function (className, event ) {
     return event.srcElement.classList.value.includes(className)
 }
 
@@ -117,13 +88,13 @@ dom.setIfDefined = function (val, set, pt) {
 dom.make = function (tag, options, parent) {
     var element = document.createElement(tag);
     ['id', 'type', 'value', 'name', 'src', 'placeholder'].forEach(el => {
-        // if options includes some of these html attributes,
-        //   set them to the created object
-        try {
-            dom.setIfDefined(options[el], element, el)
-        } catch (e) {
-            console.log(e)
-        }
+      // if options includes some of these html attributes,
+      //   set them to the created object
+      try {
+          dom.setIfDefined(options[el], element, el)
+      } catch (e) {
+          console.log(e)
+      }
     })
     // special cases — name of attribute in options (and in html)
     //   doesn't correspond to the name of attribute in JS
@@ -131,16 +102,19 @@ dom.make = function (tag, options, parent) {
         dom.setIfDefined(options["class"], element, 'className')
         dom.setIfDefined(options.for, element, 'htmlFor')
         if (options.text) {
-            element.appendChild(document.createTextNode(options.text));
+          element.appendChild(document.createTextNode(options.text));
         }
     }
     if (parent) {
-        parent.appendChild(element)
+      parent.appendChild(element)
     }
     return element
 }
 
 dom.render = function (scheme, parent) {
+    if (typeof scheme === 'string') {
+        scheme = dom.decode(scheme)
+    }
     // inspired by Tiddlywiki source code — $tw.utils.domMaker
     var element
     if (scheme.el) {
@@ -162,11 +136,11 @@ dom.render = function (scheme, parent) {
         if (is.string(el)) {
             element = dom.makeFromStr(el)
         } else
-            if (is.array(el)) {
-                element = dom.make(el[0], el[1])
-            } else {
-                console.log('sodfjosdjfo!!!!!!')
-            }
+        if (is.array(el)) {
+            element = dom.make(el[0], el[1])
+        } else {
+            console.log('sodfjosdjfo!!!!!!')
+        }
         return element
     }
 
@@ -182,13 +156,19 @@ dom.render = function (scheme, parent) {
 }
 
 dom.makeFromStr = function (str, parent) {
+    if (str === 'template' || str === 'fragment') {
+        return document.createDocumentFragment()
+    }
     let tag = str.split('.')[0]
     if (tag === str) {
         tag = str.split(' ')[0]
     }
-    const classes = str.match(/\S+/g)[0].split('.').slice(1, 999)
+    let classes = str.match(/\S+/g)[0]
+    classes = classes.split('.')
+    classes = classes.slice(1, 999)
+    
     const others = str.split(' ').slice(1, 999).join(' ')
-    let text, placeholder, value
+    let text, placeholder, value, type
     if (others.includes('text:')) {
         text = others.match(/text:(.*),/)
         if (!text) {
@@ -201,10 +181,17 @@ dom.makeFromStr = function (str, parent) {
             placeholder = others.match(/placeholder:(.*)/)[1]
         }
     }
+    if (others.includes('type:')) {
+        type = others.match(/type:(.*),/)
+        if (!type) {
+            type = others.match(/type:(.*)/)[1]
+        }
+    }
     let res = [tag, {
         class: classes.join(' '),
         text: text,
         placeholder: placeholder,
+        type: type
     }]
 
     if (parent) {
@@ -225,6 +212,61 @@ dom.removeAllChildren = function (el) {
     }
 }
 
+dom.decode = function decode(i) {
+    // take multi-line string, usually from the ui, and
+    // make object, ready to use by dom.render
+
+    i = i.trim().split('\n')
+    let o = {
+        ch: []
+    }
+    let blocks = split(i)
+    if (blocks.length > 1) {
+        o.el = 'template'
+    } else {
+        o.el = blocks[0]
+    }
+    blocks.forEach(line => {
+        let newObj = {
+            el: line[0],
+            ch: processCh(line.slice(1, line.length))
+        }
+        o.ch.push( newObj )
+    })
+    return o
+
+    function processCh(line) {
+        if (line.length === 0) return []
+        line = line.map(p => p.slice(4, p.length))
+        let blocks = split(line)
+        let res = []
+        blocks.forEach(line => {
+            let newObj = {
+                el: line[0],
+            }
+            if (blocks.length === 1) {
+                newObj.ch = []
+            } else {
+                newObj.ch = processCh(line.slice(1, line.length))
+            }
+            res.push(newObj)
+        })
+        return res
+    }
+    
+    function split(lines) {
+        var acc = []
+        lines.forEach(line => {
+            if (line[0] !== ' ') {
+                acc.push([line])
+            } else {
+                acc[acc.length - 1].push(line)
+            }
+        })
+        return acc
+    }
+}
+
 const rand = {
     arrayEl: {}
 }
@@ -232,13 +274,13 @@ rand.arrayIndex = function (arr) {
     return Math.floor(Math.random() * arr.length)
 }
 rand.arrayEl.nonMutating = function (arr) {
-    return arr[rand.arrayIndex(arr)]
+  return arr[rand.arrayIndex(arr)]
 }
 rand.arrayEl.mutating = function randElCut(arr) {
-    const index = rand.arrayIndex(arr)
-    const out = arr[index]
-    arr.splice(index, 1)
-    return out
+  const index = rand.arrayIndex(arr)
+  const out = arr[index]
+  arr.splice(index, 1)
+  return out
 }
 rand.objectProperty = function (obj) {
     return rand.arrayEl.nonMutating(Object.keys(obj))
@@ -287,7 +329,7 @@ time.getAllYearDays = function (year) {
 time.daysInFebruary = function (year) {
     year = parseInt(year)
     if (year % 4 === 0 &&
-        (year % 100 !== 0 || year % 400 === 0)) {
+    (year % 100 !== 0 || year % 400 === 0)) {
         return 29
     } else {
         return 28
@@ -313,14 +355,13 @@ time.daysInMonths = function (year, month) {
 
 time.nextDate = function (date_s) {
     let date = new Date(date_s)
-    date.setDate(date.getDate() + 1)
+    date.setDate( date.getDate() + 1 )
     let month = String(date.getMonth() + 1).padStart(2, '0')
-    let day = String(date.getDate()).padStart(2, '0')
+    let day   = String(date.getDate()).padStart(2, '0')
     return `${date.getFullYear()}-${month}-${day}`
 }
 
-
-
+//console.log( decode(a) )
 //console.log(
 //    time.datesBetween('2018-09-29', '2018-10-30')
 //)
