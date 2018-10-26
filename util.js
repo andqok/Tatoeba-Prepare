@@ -39,6 +39,30 @@ function clearPunctuation (word) {
     }
 }
 
+const util = {
+    readFile: (filename) => {
+        let readFile = fs.readFileSync(filename, 'utf8')
+        let parsedFile = JSON.parse(readFile)
+        return parsedFile
+    },
+    percent: (arg1, arg2) => {
+        return Math.floor((arg1 / arg2) * 100)
+    },
+    time: (time, startTime) => {
+        let hours = addZero(time.getHours())
+        let minutes = addZero(time.getMinutes())
+        let seconds = addZero(time.getSeconds())
+        return `${hours}:${minutes}:${seconds}`
+        function addZero(a) {
+            if (a <= 9) {
+                return '0' + a
+            } else {
+                return a
+            }
+        }
+    }
+}
+
 const is = { empty: {} }
 is.array = function (smth) {
     return Array.isArray(smth)
@@ -85,33 +109,13 @@ dom.setIfDefined = function (val, set, pt) {
         set[pt] = val
     }
 }
-dom.make = function (tag, options, parent) {
-    var element = document.createElement(tag);
-    ['id', 'type', 'value', 'name', 'src', 'placeholder'].forEach(el => {
-      // if options includes some of these html attributes,
-      //   set them to the created object
-      try {
-          dom.setIfDefined(options[el], element, el)
-      } catch (e) {
-          console.log(e)
-      }
-    })
-    // special cases — name of attribute in options (and in html)
-    //   doesn't correspond to the name of attribute in JS
-    if (options && Object.keys(options).length > 0) {
-        dom.setIfDefined(options["class"], element, 'className')
-        dom.setIfDefined(options.for, element, 'htmlFor')
-        if (options.text) {
-          element.appendChild(document.createTextNode(options.text));
-        }
-    }
-    if (parent) {
-      parent.appendChild(element)
-    }
-    return element
-}
 
 dom.render = function (scheme, parent) {
+    // used external functions:
+    //      dom.decode
+    //      dom.makeFromStr
+    //      dom.make
+    //      dom.tagAttributes (indirectly)
     if (typeof scheme === 'string') {
         scheme = dom.decode(scheme)
     }
@@ -153,6 +157,36 @@ dom.render = function (scheme, parent) {
             }
         })
     }
+}
+
+dom.make = function (tag, options, parent) {
+    var element = document.createElement(tag);
+    // special cases — name of attribute in options (and in html)
+    //   doesn't correspond to the name of attribute in JS
+    if (options && Object.keys(options).length > 0) {
+        dom.setIfDefined(options['class'], element, 'className')
+        delete options['class']
+        dom.setIfDefined(options['for'], element, 'htmlFor')
+        delete options['for']
+        if (options.text) {
+            element.appendChild(document.createTextNode(options.text));
+            delete options['text']
+        }
+    }
+    Object.keys(options).forEach(el => {
+        // if options includes some of these html attributes,
+        //   set them to the created object
+        try {
+            dom.setIfDefined(options[el], element, el)
+        } catch (e) {
+            console.log(e)
+        }
+    })
+    
+    if (parent) {
+        parent.appendChild(element)
+    }
+    return element
 }
 
 dom.makeFromStr = function (str, parent) {
@@ -205,15 +239,21 @@ dom.tagAttributes = function (tag, others) {
         // except class
         div:    ['id'],
         button: ['text'],
-        input:  ['type', 'id'],
-        label:  ['for', 'text']
+        input:  ['type', 'id', 'accept'],
+        label:  ['for', 'text'],
+        progress: ['id', 'max', 'value'],
+        p: ['id', 'text'],
+        span: ['id', 'text'],
+        h1: ['text']
     }
     let attrRegex = {
-        text: [/text:(.*),/, /text:(.*)/],
-        placeholder: [/placeholder:(.*),/, /placeholder:(.*)/],
-        type: [/type:(.*),/, /type:(.*)/],
-        id: [/id:(.*),/, /id:(.*)/],
-        for: [/for:(.*),/, /for:(.*)/],
+        text: [/text:([^,]*),/, /text:(.*)/],
+        placeholder: [/placeholder:([^,]*),/, /placeholder:(.*)/],
+        type: [/type:([^,]*),/, /type:(.*)/],
+        id: [/id:([^,]*),/, /id:(.*)/],
+        for: [/for:([^,]*),/, /for:(.*)/],
+        value: [/value:([^,]*),/, /value:(.*)/],
+        max: [/max:([^,]*),/, /max:(.*)/],
     }
     tagsAttributes[tag].forEach(attribute => {
         let attributeText
@@ -232,18 +272,6 @@ dom.tagAttributes = function (tag, others) {
         }
     })
     return o
-}
-
-dom.rm = function (el) {
-    if (el && el.parentNode) {
-        el.parentNode.removeChild(el)
-    }
-}
-
-dom.removeAllChildren = function (el) {
-    while (el.firstChild) {
-        el.removeChild(el.firstChild)
-    }
 }
 
 dom.decode = function decode(i) {
@@ -265,7 +293,7 @@ dom.decode = function decode(i) {
             el: line[0],
             ch: processCh(line.slice(1, line.length))
         }
-        o.ch.push( newObj )
+        o.ch.push(newObj)
     })
     return o
 
@@ -287,7 +315,7 @@ dom.decode = function decode(i) {
         })
         return res
     }
-    
+
     function split(lines) {
         var acc = []
         lines.forEach(line => {
@@ -300,6 +328,20 @@ dom.decode = function decode(i) {
         return acc
     }
 }
+
+dom.rm = function (el) {
+    if (el && el.parentNode) {
+        el.parentNode.removeChild(el)
+    }
+}
+
+dom.removeAllChildren = function (el) {
+    while (el.firstChild) {
+        el.removeChild(el.firstChild)
+    }
+}
+
+
 
 const rand = {
     arrayEl: {}
