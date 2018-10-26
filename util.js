@@ -159,45 +159,79 @@ dom.makeFromStr = function (str, parent) {
     if (str === 'template' || str === 'fragment') {
         return document.createDocumentFragment()
     }
-    let tag = str.split('.')[0]
-    if (tag === str) {
-        tag = str.split(' ')[0]
-    }
-    let classes = str.match(/\S+/g)[0]
-    classes = classes.split('.')
-    classes = classes.slice(1, 999)
-    
-    const others = str.split(' ').slice(1, 999).join(' ')
-    let text, placeholder, value, type
-    if (others.includes('text:')) {
-        text = others.match(/text:(.*),/)
-        if (!text) {
-            text = others.match(/text:(.*)/)[1]
-        }
-    }
-    if (others.includes('placeholder:')) {
-        placeholder = others.match(/placeholder:(.*),/)
-        if (!placeholder) {
-            placeholder = others.match(/placeholder:(.*)/)[1]
-        }
-    }
-    if (others.includes('type:')) {
-        type = others.match(/type:(.*),/)
-        if (!type) {
-            type = others.match(/type:(.*)/)[1]
-        }
-    }
-    let res = [tag, {
-        class: classes.join(' '),
-        text: text,
-        placeholder: placeholder,
-        type: type
-    }]
+    let decomposed = decompose(str)
+    let tag     = decomposed.tag
+    let classes = decomposed.classes
+    let others  = decomposed.others
+    let res = [tag]
+    let options = dom.tagAttributes(tag, others)
+    res.push(options)
 
+    if (classes.length > 0) {
+        res[1].class = classes.join(' ')
+    }
     if (parent) {
         res.push(parent)
     }
     return dom.make(...res)
+    
+    function decompose (str) {
+        let o = {
+            classes: []
+        }
+        let str2 = str.split('.')[0]
+        if (str === str2) { // if true, then no classes present
+            o.tag = str.split(' ')[0]
+        } else {
+            o.tag = str2
+        }
+        o.others = str.slice(o.tag.length, str.length).trim()
+        if (o.others) {
+            if (o.others[0] === '.') {
+                let classesStr = o.others.match(/\S+/g)[0]
+                o.others = o.others.slice(classesStr.length, o.others.length)
+                                   .trim()
+                o.classes = classesStr.split('.')
+                o.classes.shift()
+            }
+        }
+        return o
+    }
+}
+
+dom.tagAttributes = function (tag, others) {
+    let o = {}
+    let tagsAttributes = {
+        // except class
+        div:    ['id'],
+        button: ['text'],
+        input:  ['type', 'id'],
+        label:  ['for', 'text']
+    }
+    let attrRegex = {
+        text: [/text:(.*),/, /text:(.*)/],
+        placeholder: [/placeholder:(.*),/, /placeholder:(.*)/],
+        type: [/type:(.*),/, /type:(.*)/],
+        id: [/id:(.*),/, /id:(.*)/],
+        for: [/for:(.*),/, /for:(.*)/],
+    }
+    tagsAttributes[tag].forEach(attribute => {
+        let attributeText
+        if (others.includes(attribute + ':')) {
+            attributeText = others.match(
+                attrRegex[attribute][0]
+            )
+            if (!attributeText) {
+                attributeText = others.match(
+                    attrRegex[attribute][1]
+                )[1]
+            } else if (is.array(attributeText)) {
+                attributeText = attributeText[1]
+            }
+            o[attribute] = attributeText
+        }
+    })
+    return o
 }
 
 dom.rm = function (el) {

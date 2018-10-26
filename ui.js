@@ -1,5 +1,5 @@
 var ui = `
-div.langs
+div.langs id:brave
 div
     button.step1-submit text:Go
 `
@@ -7,7 +7,7 @@ div
 var lng = function(l) {
 return `
 div
-    input type:checkbox
-    label text:${l}
+    input type:checkbox, id:id-${l}
+    label.labelka text:${l}, for:id-${l}
 `
 }

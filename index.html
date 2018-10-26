@@ -6,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <h1 id="num">0</h1>
-    <h1 id="num2">0</h1>
 <script src="ui.js"></script>
 <script src="util.js"></script>
 <script>
@@ -23,7 +21,8 @@
     click('.step1-submit', e => {
         let langs = queryArr('input[type=checkbox]:checked')
                     .map(el => el.nextSibling.textContent)
-        separateLanguages(langs)
+        console.log(langs)
+        //separateLanguages(langs)
     })
     
     function separateLanguages (langs) {
