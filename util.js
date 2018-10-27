@@ -285,17 +285,22 @@ dom.decode = function decode(i) {
     let blocks = split(i)
     if (blocks.length > 1) {
         o.el = 'template'
+        o.ch = newChildren(blocks)
     } else {
         o.el = blocks[0]
+        o = newChildren(blocks)[0]
     }
-    blocks.forEach(line => {
-        let newObj = {
-            el: line[0],
-            ch: processCh(line.slice(1, line.length))
-        }
-        o.ch.push(newObj)
-    })
+
     return o
+    
+    function newChildren(blocks) {
+        return blocks.map(line => {
+            return {
+                el: line[0],
+                ch: processCh(line.slice(1, line.length))
+            }
+        })
+    }
 
     function processCh(line) {
         if (line.length === 0) return []
