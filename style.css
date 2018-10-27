@@ -1,0 +1,13 @@
+body {
+    font-family: Arial;
+    font-size: 20px;
+}
+
+label {
+    margin-left: 20px;
+}
+
+.langs > div > div {
+    display: grid;
+    grid-template-columns: 1em 100px 200px;
+}
