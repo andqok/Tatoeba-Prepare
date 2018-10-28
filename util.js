@@ -244,7 +244,10 @@ dom.tagAttributes = function (tag, others) {
         progress: ['id', 'max', 'value'],
         p: ['id', 'text'],
         span: ['id', 'text'],
-        h1: ['text']
+        h1: ['text'],
+        h2: ['text'],
+        img: ['src'],
+        ul: ['id']
     }
     let attrRegex = {
         text: [/text:([^,]*),/, /text:(.*)/],
