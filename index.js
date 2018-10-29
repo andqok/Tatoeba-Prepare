@@ -1,4 +1,4 @@
-const fs = require('fs')
+//const fs = require('fs')
 
 var langs = ["fra", "ukr", "spa", "por", "eng", "pol", "ita", "ces", "lat", "tur"]
 var langsSelected = []

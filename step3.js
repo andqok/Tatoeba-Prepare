@@ -11,8 +11,8 @@ function step3() {
         separateSentences(lang)
     }
     setTimeout(function() {
-        //step4()
-    }, /*langsSelected.length * 60000*/)
+        step4()
+    }, langsSelected.length * 60000)
     console.log("step 3 c'est fini")
 
     function separateSentences(lang) {

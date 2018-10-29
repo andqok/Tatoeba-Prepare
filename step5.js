@@ -4,12 +4,12 @@ function step5(lang) {
         input: require('fs').createReadStream(`tmp/garbage-${lang}.json`)
     })
 
-    var counter = 999
+    var counter = 99
     var res
 
     notFiltered.on('line', line => {
         counter += 1
-        if (counter === 1000) {
+        if (counter === 100) {
             let number = line.match(/(?<=")(.*)(?=":{"s":)/)[0]
             res = fs.createWriteStream(`language/${lang}-${number}.json`)
             counter = 0
