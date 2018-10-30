@@ -111,11 +111,12 @@ dom.setIfDefined = function (val, set, pt) {
 }
 
 dom.render = function (scheme, parent) {
-    // used external functions:
-    //      dom.decode
-    //      dom.makeFromStr
-    //      dom.make
-    //      dom.tagAttributes (indirectly)
+    /**
+     * @param {object} or {string} scheme 
+     * @param {DOMElement} [parent] to which elements from scheme will be appended.
+     * @return {DOMElement} element, which has been appended to parent (if parent specified)
+     * If scheme contains multiple first-level elements, this element will be DOMFragment
+     */
     if (typeof scheme === 'string') {
         scheme = dom.decode(scheme)
     }
@@ -190,96 +191,102 @@ dom.make = function (tag, options, parent) {
 }
 
 dom.makeFromStr = function (str, parent) {
+    /**
+     * Wrapper around dom.make, which allows input in form of
+     * @param {string} str, which represents DOM element in shortest form possible, and
+     * @returns {array} with tag {string}, options {object} and parent if specified
+     */
     if (str === 'template' || str === 'fragment') {
         return document.createDocumentFragment()
     }
-    let decomposed = decompose(str)
-    let tag     = decomposed.tag
-    let classes = decomposed.classes
-    let others  = decomposed.others
-    let res = [tag]
-    let options = dom.tagAttributes(tag, others)
-    res.push(options)
+    var tags = {
+        'a': 'a abbr address area article aside audio',
+        'b': 'b base bdi bdo blockquote body br button',
+        'c': 'canvas caption cite code col colgroup command',
+        'd': 'datalist dd del details dfn dir div dl dt',
+        'e': 'em embed',
+        'f': 'fieldset figcaption figure footer form',
+        'h': 'h1 h2 h3 h4 h5 h6 head header hgroup hr html',
+        'i': 'i iframe img input ins',
+        'k': 'kbd keygen',
+        'l': 'label legend li link',
+        'm': 'map mark menu meta meter',
+        'n': 'nav noscript',
+        'o': 'object ol optgroup option output',
+        'p': 'p param pre progress',
+        'q': 'q',
+        'r': 'rp rt ruby',
+        's': 's samp script section select small source span strong style sub summary sup',
+        't': 'table tbody td textarea tfoot th thead time title tr track',
+        'u': 'u ul',
+        'v': 'var video',
+        'w': 'wbr'
+    }
+    for (let i in tags) { tags[i] = tags[i].split(' ').reverse() }
+    let tag = parseTag()
+    let options = {}
+    parseText()
+    parseClass()
+    parseAttribute()
+    return dom.make(tag, options, parent)
 
-    if (classes.length > 0) {
-        res[1].class = classes.join(' ')
-    }
-    if (parent) {
-        res.push(parent)
-    }
-    return dom.make(...res)
-    
-    function decompose (str) {
-        let o = {
-            classes: []
-        }
-        let str2 = str.split('.')[0]
-        if (str === str2) { // if true, then no classes present
-            o.tag = str.split(' ')[0]
-        } else {
-            o.tag = str2
-        }
-        o.others = str.slice(o.tag.length, str.length).trim()
-        if (o.others) {
-            if (o.others[0] === '.') {
-                let classesStr = o.others.match(/\S+/g)[0]
-                o.others = o.others.slice(classesStr.length, o.others.length)
-                                   .trim()
-                o.classes = classesStr.split('.')
-                o.classes.shift()
+    function parseTag() {
+        let possibleTags = tags[str[0]]
+        let tag
+        for (let i = 0; i < possibleTags.length; i += 1) {
+            let possibleTag = possibleTags[i]
+            if (possibleTag === str.slice(0, possibleTag.length)) {
+                tag = possibleTag
+                i = 999
             }
         }
-        return o
+        str = str.slice(tag.length, str.length).trim()
+        return tag
     }
-}
-
-dom.tagAttributes = function (tag, others) {
-    let o = {}
-    let tagsAttributes = {
-        // except class
-        div:    ['id'],
-        button: ['text'],
-        input:  ['type', 'id', 'accept'],
-        label:  ['for', 'text'],
-        progress: ['id', 'max', 'value'],
-        p: ['id', 'text'],
-        span: ['id', 'text'],
-        h1: ['text'],
-        h2: ['text'],
-        img: ['src'],
-        ul: ['id']
-    }
-    let attrRegex = {
-        text: [/text:([^,]*),/, /text:(.*)/],
-        placeholder: [/placeholder:([^,]*),/, /placeholder:(.*)/],
-        type: [/type:([^,]*),/, /type:(.*)/],
-        id: [/id:([^,]*),/, /id:(.*)/],
-        for: [/for:([^,]*),/, /for:(.*)/],
-        value: [/value:([^,]*),/, /value:(.*)/],
-        max: [/max:([^,]*),/, /max:(.*)/],
-    }
-    tagsAttributes[tag].forEach(attribute => {
-        let attributeText
-        if (others.includes(attribute + ':')) {
-            attributeText = others.match(
-                attrRegex[attribute][0]
-            )
-            if (!attributeText) {
-                attributeText = others.match(
-                    attrRegex[attribute][1]
-                )[1]
-            } else if (is.array(attributeText)) {
-                attributeText = attributeText[1]
-            }
-            o[attribute] = attributeText
+    function parseText() {
+        let text = str.match(/text=(.*)/)
+        if (text) {
+            text = text[1]
+            options.text = text
+            str = str.slice(0, str.length - text.length - 5).trim()
         }
-    })
-    return o
+    }
+    function parseClass() {
+        let classesStr
+        if (str[0] === '.') {
+            /** if first character is dot, classes are present */
+            let index = str.indexOf(' ')
+            if (index !== -1) {
+                classesStr = str.slice(0, index)
+            } else {
+                classesStr = str
+            }
+            str = str.slice(index, str.length).trim()
+            options.class = classesStr.split('.').slice(1, 999)
+        }
+    }
+    function parseAttribute() {
+        if (str.includes('=')) {
+            let splitMultiple = str.split(',')
+                .map(i => i.trim())
+                .filter(i => { if (i.length > 0) return i })
+            for (let el of splitMultiple) {
+                let index = el.indexOf('=')
+                let key = el.slice(0, index)
+                let value = el.slice(index + 1, el.length)
+                options[key] = value
+            }
+        }
+    }
 }
 
 dom.decode = function decode(i) {
-    // take multi-line string, usually from the ui, and
-    // make object, ready to use by dom.render
+    /**
+     * Helper function of dom.render
+     * Take multi-line string, and make object, ready to use by dom.render
+     * @param {string} i
+     * @return {object}
+     */
 
     i = i.trim().split('\n')
     let o = {
@@ -293,7 +300,6 @@ dom.decode = function decode(i) {
         o.el = blocks[0]
         o = newChildren(blocks)[0]
     }
-
     return o
     
     function newChildren(blocks) {
@@ -348,8 +354,6 @@ dom.removeAllChildren = function (el) {
         el.removeChild(el.firstChild)
     }
 }
-
-
 
 const rand = {
     arrayEl: {}
