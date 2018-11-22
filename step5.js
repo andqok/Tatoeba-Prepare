@@ -1,5 +1,6 @@
+/** Split language file into 1000 lines chunks */ 
+
 function step5(lang) {
-    // Split language file into 1000 lines chunks
     var notFiltered = require('readline').createInterface({
         input: require('fs').createReadStream(`tmp/garbage-${lang}.json`)
     })

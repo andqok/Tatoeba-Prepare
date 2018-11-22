@@ -1,12 +1,10 @@
-//var fs = require('fs')
-//var langsSelected = ['eng', 'fra', 'pol', 'ukr']
 
 function step3() {
     // i: tmp/links.json
     //    csv/sentences.csv
     // o: tmp/garbage-${lang}.json
     //const active = readFile('tmp/active.json')
-    var links = readFile('tmp/links.json')
+    var links = readFileObject('tmp/links.json')
     for (let lang of langsSelected) {
         separateSentences(lang)
     }
@@ -39,10 +37,5 @@ function step3() {
         sentencesReader.on('close', () => {
             output.write('"dummy": {}}')
         })
-    }
-    function readFile(filename) {
-        let readFile = fs.readFileSync(filename, 'utf8')
-        let parsedFile = JSON.parse(readFile)
-        return parsedFile
     }
 }

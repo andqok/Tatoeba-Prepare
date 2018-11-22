@@ -1,11 +1,13 @@
 'use strict'
 
+const fs = require('fs')
+
 function clearPunctuation (word) {
     /**
      * @param  {string} word
      * @return {string} word
      */
-    if (is.string(word)) {
+    if (typeof word === 'string') {
         word = word.replace(/[\n,.?!:;()¿¡"«»\\%—–…]/g, "")
         // specific line - may not need this
         word = word.replace(/\`/g, "\'")

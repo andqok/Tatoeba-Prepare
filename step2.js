@@ -1,11 +1,11 @@
-//var fs = require('fs')
-function step2() {
-    // Skim through links.csv
-    // i: tmp/active.json 
-    //    csv/links.csv
-    // o: tmp/links.json
+// Skim through links.csv
+// i: tmp/active.json 
+//    csv/links.csv
+// o: tmp/links.json
 
-    const active = readFile('tmp/active.json')
+function step2() {
+
+    const active = readFileObject('tmp/active.json')
     const linksCsvReader = require('readline').createInterface({
         input: require('fs').createReadStream('csv/links.csv')
     })
@@ -50,25 +50,11 @@ function step2() {
             output.write(result + ',\n')
         }
     })
-    function readFile (filename) {
-        let readFile = fs.readFileSync(filename, 'utf8')
-        let parsedFile = JSON.parse(readFile)
-        return parsedFile
-    }
-    
-    function indicator() {
-        if (counterLine % 170000 === 0) {
-            id('num2').textContent = percent(counterLine, 16000000)
-        }
-        function percent (arg1, arg2) {
-            return Math.floor((arg1 / arg2) * 100)
-        }
-    }
 
     linksCsvReader.on('close', () => {
         output.write('"dummy": {}}')
         setTimeout(function () {
             step3()
-            }, 1000)
+        }, 1000)
     })
 }

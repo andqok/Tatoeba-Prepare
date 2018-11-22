@@ -1,5 +1,3 @@
-var fs = require('fs')
-var langsSelected = ['eng', 'fra', 'pol', 'ukr']
 
 function step4(varkla) {
     let ex = []
@@ -13,7 +11,7 @@ function step4(varkla) {
     }, 1000)
 
     function words(lang) {
-        var notFiltered = readFile(`tmp/garbage-${lang}.json`)
+        var notFiltered = readFileObject(`tmp/garbage-${lang}.json`)
         var tree = {}
         var words = {}
         var mostused = {}
@@ -56,7 +54,6 @@ function step4(varkla) {
         }
     }
 
-
     function makeWords(words, word, key) {
         if (words[word]) {
             try {
@@ -68,20 +65,4 @@ function step4(varkla) {
             words[word] = [key]
         }
     }
-    function readFile(filename) {
-        let readFile = fs.readFileSync(filename, 'utf8')
-        let parsedFile = JSON.parse(readFile)
-        return parsedFile
-    }
-    function clearPunctuation(word) {
-        if (typeof word === 'string') {
-            word = word.replace(/[\n,.?!:;()¿¡"«»\\%—–…]/g, "")
-            // specific line - may not need this
-            word = word.replace(/\`/g, "\'")
-            return word
-        } else {
-            console.log('not a string ' + word)
-        }
-    }
 }
-step4()
